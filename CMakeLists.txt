@@ -150,6 +150,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Test/Live/IRD-inertial)
 add_executable(realsense_imu_live Test/Live/IRD-inertial/realsense-imu.cc)
 target_link_libraries(realsense_imu_live ${PROJECT_NAME})
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Test/Live/IR_STEREO)
+add_executable(realsense_stereo Test/Live/IR_STEREO/realsense_stereo.cc)
+target_link_libraries(realsense_stereo ${PROJECT_NAME})
+
 # Build examples
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)

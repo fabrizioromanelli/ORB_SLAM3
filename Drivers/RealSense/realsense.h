@@ -12,7 +12,10 @@ public:
   // IRD  - Uses Infrared Left camera and Depth camera (aligned, synchronized)
   // IRL  - Uses Infrared Left camera
   // IRR  - Uses Infrared Right camera
-  enum sModality { RGBD, IRD, IRL, IRR, IMU_IRD };
+  // IMU_IRD  - Uses Infrared Left camera and Depth camera (aligned, synchronized) and IMU
+  // IR_STEREO - Uses Infrared left and right camera
+  // IMU_IR_STEREO - Uses Infrared left and right camera and IMU
+  enum sModality { RGBD, IRD, IRL, IRR, IMU_IRD, IR_STEREO, IMU_IR_STEREO };
 
 private:
   // Sensor modality
@@ -145,6 +148,12 @@ private:
   // Updates for IR Left and Right frames
   void updateIRL();
   void updateIRR();
+
+  // Updates for IR_STEREO frames
+  void updateIR_STEREO();
+
+  // Updates for IMU_IR_STEREO frames
+  void updateIMU_IR_STEREO();
 
   // Updates for motion frame
   void updateGyro();

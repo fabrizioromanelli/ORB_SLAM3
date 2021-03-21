@@ -52,6 +52,12 @@ void RealSense::run()
     case IMU_IRD:
       updateIMU_IRD();
       break;
+    case IR_STEREO:
+      updateIR_STEREO();
+      break;
+    case IMU_IR_STEREO:
+      updateIMU_IR_STEREO();
+      break;
     default:
       break;
   }
@@ -96,7 +102,7 @@ rs2_time_t RealSense::getDepthTimestamp()
 
 rs2_time_t RealSense::getIRLeftTimestamp()
 {
-  if ((sensorModality == IMU_IRD) || (sensorModality == IRD) || (sensorModality == IRL)) {
+  if ((sensorModality == IMU_IRD) || (sensorModality == IRD) || (sensorModality == IRL) || (sensorModality == IR_STEREO) || (sensorModality == IMU_IR_STEREO)) {
     // Get each frame
     rs2::frame cFrame  = frameset.get_infrared_frame(IR_LEFT);
     rs2_frame * frameP = cFrame.get();
@@ -296,6 +302,17 @@ inline void RealSense::initializeSensor()
       config.enable_stream( rs2_stream::RS2_STREAM_ACCEL, rs2_format::RS2_FORMAT_MOTION_XYZ32F );
       config.enable_stream( rs2_stream::RS2_STREAM_GYRO,  rs2_format::RS2_FORMAT_MOTION_XYZ32F );
       break;
+    case IR_STEREO:
+      config.enable_stream( rs2_stream::RS2_STREAM_INFRARED, IR_LEFT, ir_left_width, ir_left_height, rs2_format::RS2_FORMAT_Y8, ir_left_fps );
+      config.enable_stream( rs2_stream::RS2_STREAM_INFRARED, IR_RIGHT, ir_right_width, ir_right_height, rs2_format::RS2_FORMAT_Y8, ir_right_fps );
+      break;
+    case IMU_IR_STEREO:
+      config.enable_stream( rs2_stream::RS2_STREAM_INFRARED, IR_LEFT, ir_left_width, ir_left_height, rs2_format::RS2_FORMAT_Y8, ir_left_fps );
+      config.enable_stream( rs2_stream::RS2_STREAM_INFRARED, IR_RIGHT, ir_right_width, ir_right_height, rs2_format::RS2_FORMAT_Y8, ir_right_fps );
+      // Add streams of gyro and accelerometer to configuration
+      config.enable_stream( rs2_stream::RS2_STREAM_ACCEL, rs2_format::RS2_FORMAT_MOTION_XYZ32F );
+      config.enable_stream( rs2_stream::RS2_STREAM_GYRO,  rs2_format::RS2_FORMAT_MOTION_XYZ32F );
+      break;
     default:
       std::cerr << "Invalid modality selected" << std::endl;
       break;
@@ -407,6 +424,22 @@ void RealSense::updateIRR()
 {
   updateFrame();
   updateInfraredIRRight();
+}
+
+void RealSense::updateIR_STEREO()
+{
+  updateFrame();
+  updateInfraredIRLeft();
+  updateInfraredIRRight();
+}
+
+void RealSense::updateIMU_IR_STEREO()
+{
+  updateFrame();
+  updateInfraredIRLeft();
+  updateInfraredIRRight();
+  updateGyro();
+  updateAcc();
 }
 
 // Update Frame
