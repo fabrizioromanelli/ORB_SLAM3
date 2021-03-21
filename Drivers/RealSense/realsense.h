@@ -94,6 +94,9 @@ public:
   // Process
   void run();
 
+  // Updates IMU frames
+  void updateIMU();
+
   // Operations with frame timestamps
   rs2_time_t getRGBTimestamp();
   rs2_time_t getDepthTimestamp();

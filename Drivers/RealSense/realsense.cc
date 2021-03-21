@@ -71,7 +71,7 @@ rs2_time_t RealSense::getRGBTimestamp()
     rs2_frame * frameP = cFrame.get();
 
     // Get frame timestamp
-    return(rs2_get_frame_timestamp(frameP, &e));
+    return(rs2_get_frame_timestamp(frameP, &e)/1000.0);
   } else {
     return(-1);
   }
@@ -97,7 +97,7 @@ rs2_time_t RealSense::getDepthTimestamp()
   rs2_frame * frameP = cFrame.get();
 
   // Get frame timestamp
-  return(rs2_get_frame_timestamp(frameP, &e));
+  return(rs2_get_frame_timestamp(frameP, &e)/1000.0);
 }
 
 rs2_time_t RealSense::getIRLeftTimestamp()
@@ -108,7 +108,7 @@ rs2_time_t RealSense::getIRLeftTimestamp()
     rs2_frame * frameP = cFrame.get();
 
     // Get frame timestamp
-    return(rs2_get_frame_timestamp(frameP, &e));
+    return(rs2_get_frame_timestamp(frameP, &e)/1000.0);
   } else {
     return(-1);
   }
@@ -120,7 +120,7 @@ rs2_time_t RealSense::getGyroTimestamp()
   if (gyro_frame)
   {
     rs2_frame * frameP = gyro_frame.get();
-    return(rs2_get_frame_timestamp(frameP, &e));
+    return(rs2_get_frame_timestamp(frameP, &e)/1000.0);
   } else {
     return(-1);
   }
@@ -132,7 +132,7 @@ rs2_time_t RealSense::getAccTimestamp()
   if (acc_frame)
   {
     rs2_frame * frameP = acc_frame.get();
-    return(rs2_get_frame_timestamp(frameP, &e));
+    return(rs2_get_frame_timestamp(frameP, &e)/1000.0);
   } else {
     return(-1);
   }
@@ -146,11 +146,11 @@ rs2_time_t RealSense::getTemporalFrameDisplacement()
   switch (sensorModality)
   {
     case RGBD:
-      return(fabs(getRGBTimestamp()-getDepthTimestamp()));
+      return(fabs(getRGBTimestamp()-getDepthTimestamp())/1000.0);
       break;
     case IRD:
     case IMU_IRD:
-      return(fabs(getIRLeftTimestamp()-getDepthTimestamp()));
+      return(fabs(getIRLeftTimestamp()-getDepthTimestamp())/1000.0);
       break;
     default:
       std::cerr << "NOT IMPLEMENTED" << std::endl;
@@ -166,11 +166,11 @@ rs2_time_t RealSense::getAverageTimestamp()
   switch (sensorModality)
   {
     case RGBD:
-      return((getRGBTimestamp()+getDepthTimestamp())/2.0);
+      return(((getRGBTimestamp()+getDepthTimestamp())/2.0)/1000.0);
       break;
     case IRD:
     case IMU_IRD:
-      return((getIRLeftTimestamp()+getDepthTimestamp())/2.0);
+      return(((getIRLeftTimestamp()+getDepthTimestamp())/2.0)/1000.0);
       break;
     default:
       std::cerr << "NOT IMPLEMENTED" << std::endl;
@@ -299,8 +299,8 @@ inline void RealSense::initializeSensor()
       config.enable_stream( rs2_stream::RS2_STREAM_INFRARED, IR_RIGHT, ir_right_width, ir_right_height, rs2_format::RS2_FORMAT_Y8, ir_right_fps );
       config.enable_stream( rs2_stream::RS2_STREAM_DEPTH, depth_width, depth_height, rs2_format::RS2_FORMAT_Z16, depth_fps );
       // Add streams of gyro and accelerometer to configuration
-      config.enable_stream( rs2_stream::RS2_STREAM_ACCEL, rs2_format::RS2_FORMAT_MOTION_XYZ32F );
-      config.enable_stream( rs2_stream::RS2_STREAM_GYRO,  rs2_format::RS2_FORMAT_MOTION_XYZ32F );
+      config.enable_stream( rs2_stream::RS2_STREAM_ACCEL, rs2_format::RS2_FORMAT_MOTION_XYZ32F, 250 );
+      config.enable_stream( rs2_stream::RS2_STREAM_GYRO, rs2_format::RS2_FORMAT_MOTION_XYZ32F, 200 );
       break;
     case IR_STEREO:
       config.enable_stream( rs2_stream::RS2_STREAM_INFRARED, IR_LEFT, ir_left_width, ir_left_height, rs2_format::RS2_FORMAT_Y8, ir_left_fps );
@@ -310,8 +310,8 @@ inline void RealSense::initializeSensor()
       config.enable_stream( rs2_stream::RS2_STREAM_INFRARED, IR_LEFT, ir_left_width, ir_left_height, rs2_format::RS2_FORMAT_Y8, ir_left_fps );
       config.enable_stream( rs2_stream::RS2_STREAM_INFRARED, IR_RIGHT, ir_right_width, ir_right_height, rs2_format::RS2_FORMAT_Y8, ir_right_fps );
       // Add streams of gyro and accelerometer to configuration
-      config.enable_stream( rs2_stream::RS2_STREAM_ACCEL, rs2_format::RS2_FORMAT_MOTION_XYZ32F );
-      config.enable_stream( rs2_stream::RS2_STREAM_GYRO,  rs2_format::RS2_FORMAT_MOTION_XYZ32F );
+      config.enable_stream( rs2_stream::RS2_STREAM_ACCEL, rs2_format::RS2_FORMAT_MOTION_XYZ32F, 250 );
+      config.enable_stream( rs2_stream::RS2_STREAM_GYRO,  rs2_format::RS2_FORMAT_MOTION_XYZ32F, 200 );
       break;
     default:
       std::cerr << "Invalid modality selected" << std::endl;
@@ -438,6 +438,13 @@ void RealSense::updateIMU_IR_STEREO()
   updateFrame();
   updateInfraredIRLeft();
   updateInfraredIRRight();
+  updateGyro();
+  updateAcc();
+}
+
+void RealSense::updateIMU()
+{
+  updateFrame();
   updateGyro();
   updateAcc();
 }

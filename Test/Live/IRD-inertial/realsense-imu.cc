@@ -69,7 +69,7 @@ int main(int argc, char **argv)
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     System SLAM(argv[1], argv[2], System::IMU_RGBD, display);
-    Verbose::SetTh(Verbose::VERBOSITY_QUIET);
+    Verbose::SetTh(Verbose::VERBOSITY_VERY_VERBOSE);
 
     cout << endl << "-------" << endl;
     cout << "Start processing video stream ..." << endl;
@@ -108,6 +108,17 @@ int main(int argc, char **argv)
         // Load imu measurements from previous frame
         vImuMeas.clear();
         vImuMeas.push_back(ORB_SLAM3::IMU::Point(acc.x,acc.y,acc.z,gyro.x,gyro.y,gyro.z,realsense.getAccTimestamp()));
+
+        rs2_time_t IR_timestamp = realsense.getIRLeftTimestamp();
+        while(realsense.getAccTimestamp() <= IR_timestamp)
+        {
+          // cout.precision(17);
+          // cout << realsense.getAccTimestamp() << " " << IR_timestamp << endl;
+          acc  = realsense.getAccFrames();
+          gyro = realsense.getGyroFrames();
+          vImuMeas.push_back(ORB_SLAM3::IMU::Point(acc.x,acc.y,acc.z,gyro.x,gyro.y,gyro.z,realsense.getAccTimestamp()));
+          realsense.updateIMU();
+        }
 
         // Pass the IR Left and Depth images to the SLAM system
         cv::Mat cameraPose = SLAM.TrackRGBD(irMatrix, depthMatrix, realsense.getIRLeftTimestamp(), vImuMeas);
