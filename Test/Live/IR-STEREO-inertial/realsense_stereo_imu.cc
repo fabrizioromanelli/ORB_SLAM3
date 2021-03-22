@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <fstream>
 #include <chrono>
+#include <thread>
 #include <unistd.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/opencv.hpp>
@@ -65,6 +66,9 @@ int main(int argc, char **argv)
 
     vector<ORB_SLAM3::IMU::Point> vImuMeas;
 
+    // Start grabbing frames from realsense
+    std::thread grabThread(&RealSense::startGrab, &realsense);
+
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     System SLAM(argv[1], argv[2], System::IMU_STEREO, display);
     Verbose::SetTh(Verbose::VERBOSITY_VERY_VERBOSE);
@@ -78,39 +82,26 @@ int main(int argc, char **argv)
       dir_err = mkdir("depth", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     }
 
+    cv::Mat irLeftMatrix, irRightMatrix;
+    std::vector<std::vector<double>> gyro_m, acc_m;
+    double vFrameTs = 0.0;
+
     // Main loop
     for(;;)
     {
-      realsense.run();
-
-      if (mode == RealSense::IMU_IR_STEREO) {
+      if (realsense.getFrames(irLeftMatrix, irRightMatrix, gyro_m, acc_m, vFrameTs)) {
         // cout << fixed << setw(11) << setprecision(6) << "IRD Timestamp   : " << realsense.getIRLeftTimestamp() << endl;
-        cv::Mat irLeftMatrix  = realsense.getIRLeftMatrix();
-        cv::Mat irRightMatrix = realsense.getIRRightMatrix();
-        cv::Point3f acc;
-        cv::Point3f gyro;
         //cout << "X: " << acc.x << "Y: " << acc.y << "Z: " << acc.z << endl;
 
         // Load imu measurements from previous frame
         vImuMeas.clear();
-        vImuMeas.push_back(ORB_SLAM3::IMU::Point(acc.x,acc.y,acc.z,gyro.x,gyro.y,gyro.z,realsense.getGyroTimestamp()));
-
-        rs2_time_t IR_timestamp = realsense.getIRLeftTimestamp();
-        while(realsense.getGyroTimestamp() <= IR_timestamp)
+        for (size_t i = 0; i < acc_m.size(); i++)
         {
-          // cout.precision(17);
-          // cout << realsense.getGyroTimestamp() << " " << IR_timestamp << endl;
-          acc  = realsense.getAccFrames();
-          gyro = realsense.getGyroFrames();
-          vImuMeas.push_back(ORB_SLAM3::IMU::Point(acc.x,acc.y,acc.z,gyro.x,gyro.y,gyro.z,realsense.getGyroTimestamp()));
-          realsense.updateIMU();
+          vImuMeas.push_back(ORB_SLAM3::IMU::Point(acc_m[i][1],acc_m[i][2],acc_m[i][3],gyro_m[i][1],gyro_m[i][2],gyro_m[i][3],acc_m[i][0]));
         }
-        cout << vImuMeas.size() << endl;
-
-        // vImuMeas.push_back(ORB_SLAM3::IMU::Point(acc.x,acc.y,acc.z,gyro.x,gyro.y,gyro.z,realsense.getAccTimestamp()));
 
         // Pass the IR Left and Depth images to the SLAM system
-        cv::Mat cameraPose = SLAM.TrackStereo(irLeftMatrix, irRightMatrix, realsense.getIRLeftTimestamp(), vImuMeas);
+        cv::Mat cameraPose = SLAM.TrackStereo(irLeftMatrix, irRightMatrix, vFrameTs, vImuMeas);
 
         if (printTraj)
           cout << "Camera position" << cameraPose << endl;
@@ -126,10 +117,6 @@ int main(int argc, char **argv)
 
     // Stop all threads
     SLAM.Shutdown();
-
-    // Save camera trajectory
-    // SLAM.SaveTrajectory("CameraTrajectory.dat");
-    // SLAM.SaveKeyFrameTrajectory("KeyFrameTrajectory.dat");
   }
   catch(exception& ex) {
     cout << ex.what() << endl;
@@ -137,82 +124,3 @@ int main(int argc, char **argv)
 
   return 0;
 }
-
-
-
-
-// #include <iostream>
-// #include <chrono>
-// #include <librealsense2/rs.hpp>
-// using namespace std::chrono;
-// using namespace std;
-
-// typedef std::chrono::duration<float, std::ratio<1, 1>> seconds_f;
-
-// bool check_imu_is_supported()
-// {
-//     bool found_gyro = false;
-//     bool found_accel = false;
-//     rs2::context ctx;
-//     for (auto dev : ctx.query_devices())
-//     {
-//         // The same device should support gyro and accel
-//         found_gyro = false;
-//         found_accel = false;
-//         for (auto sensor : dev.query_sensors())
-//         {
-//             for (auto profile : sensor.get_stream_profiles())
-//             {
-//                 if (profile.stream_type() == RS2_STREAM_GYRO)
-//                     found_gyro = true;
-
-//                 if (profile.stream_type() == RS2_STREAM_ACCEL)
-//                     found_accel = true;
-//             }
-//         }
-//         if (found_gyro && found_accel)
-//             break;
-//     }
-//     return found_gyro && found_accel;
-// }
-
-// float get_frequency() {
-//     static auto start = steady_clock::now();
-//     auto end = steady_clock::now();
-//     auto d = (seconds_f)(end - start);
-//     start = end;
-//     return 1.0f / d.count();
-// }
-
-// int main(int argc, char* argv[]) {
-//     if (!check_imu_is_supported())
-//     {
-//         std::cerr << "Device supporting IMU (D435i) not found";
-//         return EXIT_FAILURE;
-//     }
-
-//     // Declare RealSense pipeline, encapsulating the actual device and sensors
-//     rs2::pipeline pipe;
-//     // Create a configuration for configuring the pipeline with a non default profile
-//     rs2::config cfg;
-
-//     // Add streams of gyro and accelerometer to configuration
-//     cfg.enable_stream(RS2_STREAM_ACCEL, RS2_FORMAT_MOTION_XYZ32F, 250);
-//     cfg.enable_stream(RS2_STREAM_GYRO, RS2_FORMAT_MOTION_XYZ32F, 200);
-
-//     float fps = 0.0f;
-//     int i = 0;
-//     auto profile = pipe.start(cfg, [&](rs2::frame frame)
-//         {
-//             fps += 0.1*(get_frequency() - fps);
-//             i++;
-//             if (i % 10 == 0) {
-//                 cout << fps << endl;
-//             }
-//             // Cast the frame that arrived to motion frame
-//             auto motion = frame.as<rs2::motion_frame>();
-//         });
-
-//     getchar();
-//     return EXIT_SUCCESS;
-// }

@@ -45,6 +45,7 @@ private:
   uint32_t ir_left_width = 640;
   uint32_t ir_left_height = 480;
   uint32_t ir_left_fps;
+  double ir_left_ts;
 
   // Infrared Right Buffer
   rs2::frame ir_right_frame;
@@ -52,6 +53,7 @@ private:
   uint32_t ir_right_width = 640;
   uint32_t ir_right_height = 480;
   uint32_t ir_right_fps;
+  double ir_right_ts;
 
   // Depth Buffer
   rs2::frame depth_frame;
@@ -59,6 +61,7 @@ private:
   uint32_t depth_width = 640;
   uint32_t depth_height = 480;
   uint32_t depth_fps;
+  double depth_ts;
 
   // Gyro Buffer
   rs2::frame gyro_frame;
@@ -66,7 +69,7 @@ private:
   uint32_t gyro_fps;
   std::vector<std::vector<double>> gyro_measurements;
 
-  // Gyro Accelerometer
+  // Accelerometer Buffer
   rs2::frame acc_frame;
   rs2_vector acc_data;
   uint32_t acc_fps;
@@ -109,8 +112,8 @@ public:
   // Process
   void run();
   void getMotionFrequency();
-  void getAllBuffers();
-  void getTemp();
+  void startGrab();
+  bool getFrames(cv::Mat &, cv::Mat &, std::vector<std::vector<double>> &, std::vector<std::vector<double>> &, double &);
 
   // Updates IMU frames
   void updateIMU();
