@@ -481,6 +481,9 @@ inline void RealSense::initializeSensor()
   pipeline_profile = pipeline.start(config);
   realSense_device = pipeline_profile.get_device();
 
+  auto motion_sensor = realSense_device.first<rs2::motion_sensor>();
+  motion_sensor.set_option(RS2_OPTION_ENABLE_MOTION_CORRECTION, 1);
+
   // Refer to: https://github.com/raulmur/ORB_SLAM2/issues/259
   if ((sensorModality == IRD) || (sensorModality == IMU_IRD))
   {
