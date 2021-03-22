@@ -6,6 +6,7 @@
 #include <iostream>
 #include <algorithm>
 #include <fstream>
+#include <thread>
 #include <chrono>
 #include <unistd.h>
 #include <opencv2/core/core.hpp>
@@ -67,6 +68,9 @@ int main(int argc, char **argv)
 
     vector<ORB_SLAM3::IMU::Point> vImuMeas;
 
+    // Start grabbing frames from realsense
+    std::thread grabThread(&RealSense::startGrab, &realsense);
+
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     System SLAM(argv[1], argv[2], System::IMU_RGBD, display);
     Verbose::SetTh(Verbose::VERBOSITY_VERY_VERBOSE);
@@ -80,68 +84,26 @@ int main(int argc, char **argv)
       dir_err = mkdir("depth", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     }
 
+    cv::Mat irMatrix, depthMatrix;
+    std::vector<std::vector<double>> gyro_m, acc_m;
+    double vFrameTs = 0.0;
+
     // Main loop
     for(;;)
     {
-      realsense.run();
-
-      if (mode == RealSense::RGBD) {
-        if (realsense.isValidAlignedFrame()) {
-          // cout << fixed << setw(11) << setprecision(6) << "RGB Timestamp     : " << realsense.getRGBTimestamp() << endl;
-          // cout << fixed << setw(11) << setprecision(6) << "Depth Timestamp   : " << realsense.getDepthTimestamp() << endl;
-          // cout << fixed << setw(11) << setprecision(6) << "Frame Displacement: " << realsense.getTemporalFrameDisplacement() << endl;
-          // cout << fixed << setw(11) << setprecision(6) << "Average Timestamp : " << realsense.getAverageTimestamp() << endl;
-          // Pass the RGB and Depth images to the SLAM system
-          SLAM.TrackRGBD(realsense.getColorMatrix(), realsense.getDepthMatrix(), realsense.getAverageTimestamp());
-        } else {
-          cerr << "Frames are not time consistent" << endl;
-        }
-      } else if (mode == RealSense::IMU_IRD) {
-        // cout << fixed << setw(11) << setprecision(6) << "IRD Timestamp   : " << realsense.getIRLeftTimestamp() << endl;
-        // cout << fixed << setw(11) << setprecision(6) << "Gyro Timestamp  : " << realsense.getGyroTimestamp() << endl;
-        // cout << fixed << setw(11) << setprecision(6) << "Acc Timestamp   : " << realsense.getAccTimestamp() << endl;
-        cv::Mat irMatrix    = realsense.getIRLeftMatrix();
-        cv::Mat depthMatrix = realsense.getDepthMatrix();
-        cv::Point3f acc     = realsense.getAccFrames();
-        cv::Point3f gyro    = realsense.getGyroFrames();
-
+      if (realsense.getFrames(irMatrix, depthMatrix, gyro_m, acc_m, vFrameTs)) {
         // Load imu measurements from previous frame
         vImuMeas.clear();
-        vImuMeas.push_back(ORB_SLAM3::IMU::Point(acc.x,acc.y,acc.z,gyro.x,gyro.y,gyro.z,realsense.getAccTimestamp()));
-
-        rs2_time_t IR_timestamp = realsense.getIRLeftTimestamp();
-        while(realsense.getAccTimestamp() <= IR_timestamp)
+        for (size_t i = 0; i < acc_m.size(); i++)
         {
-          // cout.precision(17);
-          // cout << realsense.getAccTimestamp() << " " << IR_timestamp << endl;
-          acc  = realsense.getAccFrames();
-          gyro = realsense.getGyroFrames();
-          vImuMeas.push_back(ORB_SLAM3::IMU::Point(acc.x,acc.y,acc.z,gyro.x,gyro.y,gyro.z,realsense.getAccTimestamp()));
-          realsense.updateIMU();
+          vImuMeas.push_back(ORB_SLAM3::IMU::Point(acc_m[i][1],acc_m[i][2],acc_m[i][3],gyro_m[i][1],gyro_m[i][2],gyro_m[i][3],acc_m[i][0]));
         }
 
         // Pass the IR Left and Depth images to the SLAM system
-        cv::Mat cameraPose = SLAM.TrackRGBD(irMatrix, depthMatrix, realsense.getIRLeftTimestamp(), vImuMeas);
+        cv::Mat cameraPose = SLAM.TrackRGBD(irMatrix, depthMatrix, vFrameTs, vImuMeas);
 
         if (printTraj)
           cout << "Camera position" << cameraPose << endl;
-
-        // Saving files
-        if (saveFile) {
-          char filename_ir_[50] = "./infrared/ir_";
-          char *filename_ir = &filename_ir_[0];
-          strcat(filename_ir, to_string(realsense.getIRLeftTimestamp()).c_str());
-          strcat(filename_ir, ".jpg");
-          imwrite(filename_ir, irMatrix);
-
-          // depthMatrix.convertTo(depthMatrix, CV_8UC1, 15 / 256.0);
-
-          char filename_depth_[50] = "./depth/depth_";
-          char *filename_depth = &filename_depth_[0];
-          strcat(filename_depth, to_string(realsense.getIRLeftTimestamp()).c_str());
-          strcat(filename_depth, ".png");
-          imwrite(filename_depth, depthMatrix);
-        }
       }
 
       int key = waitKey(10);
@@ -154,10 +116,6 @@ int main(int argc, char **argv)
 
     // Stop all threads
     SLAM.Shutdown();
-
-    // Save camera trajectory
-    // SLAM.SaveTrajectory("CameraTrajectory.dat");
-    // SLAM.SaveKeyFrameTrajectory("KeyFrameTrajectory.dat");
   }
   catch(exception& ex) {
     cout << ex.what() << endl;

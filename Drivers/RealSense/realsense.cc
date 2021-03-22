@@ -63,16 +63,25 @@ void RealSense::run()
   }
 }
 
-bool RealSense::getFrames(cv::Mat & irLeftMatrix, cv::Mat & irRightMatrix, std::vector<std::vector<double>> & gyro, std::vector<std::vector<double>> & acc, double & vFrameTs)
+bool RealSense::getFrames(cv::Mat & irAMatrix, cv::Mat & irBMatrix, std::vector<std::vector<double>> & gyro, std::vector<std::vector<double>> & acc, double & vFrameTs)
 {
   frameMtx.lock();
   if (!gyro_measurements.empty() && !acc_measurements.empty())
   {
-    irLeftMatrix  = this->getIRLeftMatrix();
-    irRightMatrix = this->getIRRightMatrix();
-    gyro          = gyro_measurements;
-    acc           = acc_measurements;
-    vFrameTs      = ir_left_ts;
+    if (sensorModality == IMU_IR_STEREO)
+    {
+      irAMatrix = this->getIRLeftMatrix();
+      irBMatrix = this->getIRRightMatrix();
+    }
+    else if (sensorModality == IMU_IRD)
+    {
+      irAMatrix = this->getIRLeftMatrix();
+      irBMatrix = this->getDepthMatrix();
+    }
+
+    gyro      = gyro_measurements;
+    acc       = acc_measurements;
+    vFrameTs  = ir_left_ts;
     frameMtx.unlock();
     return(true);
   }
@@ -94,13 +103,25 @@ void RealSense::startGrab()
       {
         frameMtx.lock();
         auto fs        = frame.as<rs2::frameset>();
-        auto irLFrame  = fs.get_infrared_frame(IR_LEFT);
-        auto irRFrame  = fs.get_infrared_frame(IR_RIGHT);
 
-        ir_left_frame  = irLFrame;
-        ir_left_ts     = irLFrame.get_timestamp()/1000.0;
-        ir_right_frame = irRFrame;
-        ir_right_ts    = irRFrame.get_timestamp()/1000.0;
+        if (sensorModality == IMU_IR_STEREO)
+        {
+          auto irLFrame  = fs.get_infrared_frame(IR_LEFT);
+          auto irRFrame  = fs.get_infrared_frame(IR_RIGHT);
+          ir_left_frame  = irLFrame;
+          ir_left_ts     = irLFrame.get_timestamp()/1000.0;
+          ir_right_frame = irRFrame;
+          ir_right_ts    = irRFrame.get_timestamp()/1000.0;
+        }
+        else if (sensorModality == IMU_IRD)
+        {
+          auto irLFrame  = fs.get_infrared_frame(IR_LEFT);
+          auto dFrame    = fs.get_depth_frame();
+          ir_left_frame  = irLFrame;
+          ir_left_ts     = irLFrame.get_timestamp()/1000.0;
+          depth_frame    = dFrame;
+          depth_ts       = dFrame.get_timestamp()/1000.0;
+        }
 
         accMtx.lock();
         gyroMtx.lock();

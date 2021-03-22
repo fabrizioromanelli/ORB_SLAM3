@@ -80,7 +80,7 @@ IMU.NoiseGyro: 0.01
 IMU.NoiseAcc: 0.1
 IMU.GyroWalk: 2.0e-5
 IMU.AccWalk: 0.0002
-IMU.Frequency: 200 # For D435i the frequency for accelerometer is 63Hz, for the gyroscope is 200Hz
+IMU.Frequency: 250 # For D435i the frequency for accelerometer is 63Hz, for the gyroscope is 200Hz
 
 # Modeling Realsense D435 Sensor Noise for Improved 3D Reconstruction and Tracking.
 sensor_processor/type: structured_light
