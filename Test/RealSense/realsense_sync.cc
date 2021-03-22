@@ -29,6 +29,10 @@ int main(int argc, char **argv)
     cout << "Start processing video stream ..." << endl;
 
     realsense.getAllBuffers();
+    while(1) {
+      realsense.getTemp();
+      usleep(20000);
+    }
     getchar();
 
     // Main loop

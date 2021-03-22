@@ -63,19 +63,38 @@ void RealSense::run()
   }
 }
 
+void RealSense::getTemp()
+{
+  frameMtx.lock();
+  // std::cout << "START " << std::endl << std::flush;
+  // std::cout << "size: " << gyro_measurements.size() << std::endl << std::flush;
+  // if (!gyro_measurements.empty())
+  // {
+    // for (size_t i = 0; i < gyro_measurements.size(); i++)
+      // std::cout << "a " << gyro_measurements[i][0] << std::endl << std::flush;
+  // }
+  // std::cout << "end: " << std::endl << std::flush;
+  frameMtx.unlock();
+}
+
 void RealSense::getAllBuffers()
 {
-  // std::cout.precision(17);
+  std::cout.precision(17);
   pipeline.stop();
   auto profile = pipeline.start(config, [&](rs2::frame frame)
     {
+      // Is a video frame
       if (frame.is<rs2::frameset>())
       {
         frameMtx.lock();
-        auto fs      = frame.as<rs2::frameset>();
-        auto irFrame = fs.get_infrared_frame(IR_LEFT);
+        auto fs        = frame.as<rs2::frameset>();
+        auto irLFrame  = fs.get_infrared_frame(IR_LEFT);
+        auto irRFrame  = fs.get_infrared_frame(IR_RIGHT);
 
-        double irFrameTs = irFrame.get_timestamp()/1000.0;
+        ir_left_frame  = irLFrame;
+        ir_right_frame = irRFrame;
+
+        double irFrameTs = irLFrame.get_timestamp()/1000.0;
         accMtx.lock();
         gyroMtx.lock();
         // Loop over acc stack as accelerometer is slower than gyroscope
@@ -88,25 +107,40 @@ void RealSense::getAllBuffers()
             gyroStack.pop();
         }
 
-        std::cout << "irFrameTs:         " << irFrameTs << std::endl << std::flush;
-        for (size_t i = 0; i < accStack.size(); i++)
+        gyro_measurements.clear();
+        acc_measurements.clear();
+
+        size_t accSize  = accStack.size();
+        size_t gyroSize = gyroStack.size();
+        for (size_t i = 0; i < std::min(accSize, gyroSize); i++)
         {
-          if (gyroStack.size() != 0)
-          {
-            std::cout << "G: " << gyroStack.top()[0] << " " << gyroStack.top()[1] << " " << gyroStack.top()[2] << " " << gyroStack.top()[3] << std::endl << std::flush;
-            gyroStack.pop();
-          }
-          std::cout << "A: " << accStack.top()[0] << " " << accStack.top()[1]<< " " << accStack.top()[2] << " " << accStack.top()[3] << std::endl << std::flush;
+          // TODO align as best as possibile the acc and gyro stacks
+          // std::cout << "G: " << gyroStack.top()[0] << " " << gyroStack.top()[1] << " " << gyroStack.top()[2] << " " << gyroStack.top()[3] << std::endl << std::flush;
+          gyro_measurements.push_back(gyroStack.top());
+          // std::cout << "ASDIOJDSA " << gyroStack.size() << std::endl << std::flush;
+          gyroStack.pop();
+          // std::cout << "A: " << accStack.top()[0] << " " << accStack.top()[1]<< " " << accStack.top()[2] << " " << accStack.top()[3] << std::endl << std::flush;
+          acc_measurements.push_back(accStack.top());
+          // std::cout << "ASDIOJDSA " << accStack.size() << std::endl << std::flush;
           accStack.pop();
         }
+// std::cout << "BETWEEN" << std::endl << std::flush;
+        // for (size_t i = 0; i < gyro_measurements.size(); i++)
+        //   std::cout << "GM: " << gyro_measurements[i][0] << gyro_measurements[i][1] << gyro_measurements[i][2] << gyro_measurements[i][3] << std::endl << std::flush;
 
-        for (size_t i = 0; i < gyroStack.size(); i++)
-          gyroStack.pop();
+// std::cout << "AFTER" << std::endl << std::flush;
+
+        // Empty the accelerometer and gyroscope stacks
+        accStack  = std::stack<std::vector<double>>();
+        gyroStack = std::stack<std::vector<double>>();
+
+// std::cout << "UNLOCK" << std::endl << std::flush;
 
         accMtx.unlock();
         gyroMtx.unlock();
         frameMtx.unlock();
       }
+      // Is a motion frame
       else if (frame.is<rs2::motion_frame>())
       {
         auto motion = frame.as<rs2::motion_frame>();

@@ -64,11 +64,13 @@ private:
   rs2::frame gyro_frame;
   rs2_vector gyro_data;
   uint32_t gyro_fps;
+  std::vector<std::vector<double>> gyro_measurements;
 
   // Gyro Accelerometer
   rs2::frame acc_frame;
   rs2_vector acc_data;
   uint32_t acc_fps;
+  std::vector<std::vector<double>> acc_measurements;
 
   // Warmup frames
   uint32_t warm_up_frames = 30;
@@ -108,6 +110,7 @@ public:
   void run();
   void getMotionFrequency();
   void getAllBuffers();
+  void getTemp();
 
   // Updates IMU frames
   void updateIMU();

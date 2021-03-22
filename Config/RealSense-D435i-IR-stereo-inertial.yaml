@@ -74,7 +74,7 @@ IMU.NoiseGyro: 0.01
 IMU.NoiseAcc: 0.1
 IMU.GyroWalk: 2.0e-5
 IMU.AccWalk: 0.0002
-IMU.Frequency: 200 # For D435i the frequency for accelerometer is 63Hz, for the gyroscope is 200Hz
+IMU.Frequency: 250 # For D435i the frequency for accelerometer is 63/250Hz, for the gyroscope is 200/400Hz
 
 LEFT.height: 480
 LEFT.width: 640
