@@ -63,6 +63,45 @@ void RealSense::run()
   }
 }
 
+void RealSense::getMotionFrequency()
+{
+  static int accCount = 0, gyroCount = 0;
+  static double prevAccTs = 0.0, prevGyroTs = 0.0;
+  std::cout.precision(17);
+  pipeline.stop();
+  auto profile = pipeline.start(config, [&](rs2::frame frame)
+    {
+      // Cast the frame that arrived to motion frame
+      auto motion = frame.as<rs2::motion_frame>();
+      if (motion.get_profile().stream_type() == rs2_stream::RS2_STREAM_ACCEL)
+      {
+        double currentTs = trunc(motion.get_timestamp()/1000.0);
+        if (currentTs - prevAccTs < 1.0)
+          accCount++;
+        else
+        {
+          std::cout << "ACC freq:  " << accCount << "Hz" << std::endl;
+          accCount = 0;
+          prevAccTs = trunc(motion.get_timestamp()/1000.0);
+        }
+      }
+      else if (motion.get_profile().stream_type() == rs2_stream::RS2_STREAM_GYRO)
+      {
+        double currentTs = trunc(motion.get_timestamp()/1000.0);
+        if (currentTs - prevGyroTs < 1.0)
+        {
+          gyroCount++;
+        }
+        else
+        {
+          std::cout << "GYRO freq: " << gyroCount << "Hz" << std::endl;
+          gyroCount = 0;
+          prevGyroTs = trunc(motion.get_timestamp()/1000.0);
+        }
+      }
+    });
+}
+
 rs2_time_t RealSense::getRGBTimestamp()
 {
   if (sensorModality == RGBD) {
@@ -272,9 +311,6 @@ void RealSense::initialize(rs2_time_t _maxDeltaTimeFrames)
 // Initialize Sensor
 inline void RealSense::initializeSensor()
 {
-  // Set Device Config
-  rs2::config config;
-
   switch (sensorModality)
   {
     case RGBD:
@@ -300,7 +336,7 @@ inline void RealSense::initializeSensor()
       config.enable_stream( rs2_stream::RS2_STREAM_DEPTH, depth_width, depth_height, rs2_format::RS2_FORMAT_Z16, depth_fps );
       // Add streams of gyro and accelerometer to configuration
       config.enable_stream( rs2_stream::RS2_STREAM_ACCEL, rs2_format::RS2_FORMAT_MOTION_XYZ32F, 250 );
-      config.enable_stream( rs2_stream::RS2_STREAM_GYRO, rs2_format::RS2_FORMAT_MOTION_XYZ32F, 200 );
+      config.enable_stream( rs2_stream::RS2_STREAM_GYRO, rs2_format::RS2_FORMAT_MOTION_XYZ32F, 400 );
       break;
     case IR_STEREO:
       config.enable_stream( rs2_stream::RS2_STREAM_INFRARED, IR_LEFT, ir_left_width, ir_left_height, rs2_format::RS2_FORMAT_Y8, ir_left_fps );
@@ -311,7 +347,7 @@ inline void RealSense::initializeSensor()
       config.enable_stream( rs2_stream::RS2_STREAM_INFRARED, IR_RIGHT, ir_right_width, ir_right_height, rs2_format::RS2_FORMAT_Y8, ir_right_fps );
       // Add streams of gyro and accelerometer to configuration
       config.enable_stream( rs2_stream::RS2_STREAM_ACCEL, rs2_format::RS2_FORMAT_MOTION_XYZ32F, 250 );
-      config.enable_stream( rs2_stream::RS2_STREAM_GYRO,  rs2_format::RS2_FORMAT_MOTION_XYZ32F, 200 );
+      config.enable_stream( rs2_stream::RS2_STREAM_GYRO,  rs2_format::RS2_FORMAT_MOTION_XYZ32F, 400 );
       break;
     default:
       std::cerr << "Invalid modality selected" << std::endl;

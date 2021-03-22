@@ -21,6 +21,9 @@ private:
   // Sensor modality
   sModality sensorModality;
 
+  // Sensor configuration
+  rs2::config config;
+
   // RealSense
   rs2::pipeline pipeline;
   rs2::pipeline_profile pipeline_profile;
@@ -93,6 +96,7 @@ public:
 
   // Process
   void run();
+  void getMotionFrequency();
 
   // Updates IMU frames
   void updateIMU();
