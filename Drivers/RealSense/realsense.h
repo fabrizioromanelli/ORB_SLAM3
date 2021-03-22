@@ -1,6 +1,8 @@
 #ifndef __REALSENSE__
 #define __REALSENSE__
 
+#include <mutex>
+#include <stack>
 #include <librealsense2/rs.hpp>
 #include <opencv2/opencv.hpp>
 
@@ -61,10 +63,12 @@ private:
   // Gyro Buffer
   rs2::frame gyro_frame;
   rs2_vector gyro_data;
+  uint32_t gyro_fps;
 
   // Gyro Accelerometer
   rs2::frame acc_frame;
   rs2_vector acc_data;
+  uint32_t acc_fps;
 
   // Warmup frames
   uint32_t warm_up_frames = 30;
@@ -80,6 +84,12 @@ private:
   rs2_time_t MIN_DELTA_TIMEFRAMES_THRESHOLD = 20;
 
   enum irCamera { IR_LEFT = 1, IR_RIGHT = 2};
+
+  // Mutex for frame grabbing
+  std::mutex accMtx, gyroMtx, frameMtx;
+
+  // Stacks for the motion frames
+  std::stack<std::vector<double>> accStack, gyroStack;
 
 public:
   // Constructor
@@ -97,6 +107,7 @@ public:
   // Process
   void run();
   void getMotionFrequency();
+  void getAllBuffers();
 
   // Updates IMU frames
   void updateIMU();

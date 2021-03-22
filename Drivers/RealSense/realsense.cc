@@ -2,14 +2,14 @@
 
 // Constructor
 RealSense::RealSense(const sModality modality):
-sensorModality(modality), color_fps(30), ir_left_fps(30), ir_right_fps(30), depth_fps(30)
+sensorModality(modality), color_fps(30), ir_left_fps(30), ir_right_fps(30), depth_fps(30), acc_fps(250), gyro_fps(400)
 {
   initialize(MIN_DELTA_TIMEFRAMES_THRESHOLD);
 }
 
 // Constructor with maximum delta timeframes as an input
 RealSense::RealSense(const sModality modality, double maximumDeltaTimeframes):
-sensorModality(modality), color_fps(30), ir_left_fps(30), ir_right_fps(30), depth_fps(30)
+sensorModality(modality), color_fps(30), ir_left_fps(30), ir_right_fps(30), depth_fps(30), acc_fps(250), gyro_fps(400)
 {
   if (maximumDeltaTimeframes > MIN_DELTA_TIMEFRAMES_THRESHOLD)
     initialize(maximumDeltaTimeframes);
@@ -61,6 +61,79 @@ void RealSense::run()
     default:
       break;
   }
+}
+
+void RealSense::getAllBuffers()
+{
+  // std::cout.precision(17);
+  pipeline.stop();
+  auto profile = pipeline.start(config, [&](rs2::frame frame)
+    {
+      if (frame.is<rs2::frameset>())
+      {
+        frameMtx.lock();
+        auto fs      = frame.as<rs2::frameset>();
+        auto irFrame = fs.get_infrared_frame(IR_LEFT);
+
+        double irFrameTs = irFrame.get_timestamp()/1000.0;
+        accMtx.lock();
+        gyroMtx.lock();
+        // Loop over acc stack as accelerometer is slower than gyroscope
+        for (size_t i = 0; i < accStack.size(); i++)
+        {
+          if (accStack.top()[0] > irFrameTs)
+            accStack.pop();
+
+          if (gyroStack.top()[0] > irFrameTs)
+            gyroStack.pop();
+        }
+
+        std::cout << "irFrameTs:         " << irFrameTs << std::endl << std::flush;
+        for (size_t i = 0; i < accStack.size(); i++)
+        {
+          if (gyroStack.size() != 0)
+          {
+            std::cout << "G: " << gyroStack.top()[0] << " " << gyroStack.top()[1] << " " << gyroStack.top()[2] << " " << gyroStack.top()[3] << std::endl << std::flush;
+            gyroStack.pop();
+          }
+          std::cout << "A: " << accStack.top()[0] << " " << accStack.top()[1]<< " " << accStack.top()[2] << " " << accStack.top()[3] << std::endl << std::flush;
+          accStack.pop();
+        }
+
+        for (size_t i = 0; i < gyroStack.size(); i++)
+          gyroStack.pop();
+
+        accMtx.unlock();
+        gyroMtx.unlock();
+        frameMtx.unlock();
+      }
+      else if (frame.is<rs2::motion_frame>())
+      {
+        auto motion = frame.as<rs2::motion_frame>();
+        if (motion.get_profile().stream_type() == rs2_stream::RS2_STREAM_ACCEL)
+        { 
+          accMtx.lock();
+          std::vector<double> tmp;
+          tmp.push_back(motion.get_timestamp()/1000.0);
+          tmp.push_back(motion.get_motion_data().x);
+          tmp.push_back(motion.get_motion_data().y);
+          tmp.push_back(motion.get_motion_data().z);
+          accStack.push(tmp);
+          accMtx.unlock();
+        }
+        else if (motion.get_profile().stream_type() == rs2_stream::RS2_STREAM_GYRO)
+        {
+          gyroMtx.lock();
+          std::vector<double> tmp;
+          tmp.push_back(motion.get_timestamp()/1000.0);
+          tmp.push_back(motion.get_motion_data().x);
+          tmp.push_back(motion.get_motion_data().y);
+          tmp.push_back(motion.get_motion_data().z);
+          gyroStack.push(tmp);
+          gyroMtx.unlock();
+        }
+      }
+    });
 }
 
 void RealSense::getMotionFrequency()
@@ -335,8 +408,8 @@ inline void RealSense::initializeSensor()
       config.enable_stream( rs2_stream::RS2_STREAM_INFRARED, IR_RIGHT, ir_right_width, ir_right_height, rs2_format::RS2_FORMAT_Y8, ir_right_fps );
       config.enable_stream( rs2_stream::RS2_STREAM_DEPTH, depth_width, depth_height, rs2_format::RS2_FORMAT_Z16, depth_fps );
       // Add streams of gyro and accelerometer to configuration
-      config.enable_stream( rs2_stream::RS2_STREAM_ACCEL, rs2_format::RS2_FORMAT_MOTION_XYZ32F, 250 );
-      config.enable_stream( rs2_stream::RS2_STREAM_GYRO, rs2_format::RS2_FORMAT_MOTION_XYZ32F, 400 );
+      config.enable_stream( rs2_stream::RS2_STREAM_ACCEL, rs2_format::RS2_FORMAT_MOTION_XYZ32F, acc_fps );
+      config.enable_stream( rs2_stream::RS2_STREAM_GYRO, rs2_format::RS2_FORMAT_MOTION_XYZ32F, gyro_fps );
       break;
     case IR_STEREO:
       config.enable_stream( rs2_stream::RS2_STREAM_INFRARED, IR_LEFT, ir_left_width, ir_left_height, rs2_format::RS2_FORMAT_Y8, ir_left_fps );
@@ -346,8 +419,8 @@ inline void RealSense::initializeSensor()
       config.enable_stream( rs2_stream::RS2_STREAM_INFRARED, IR_LEFT, ir_left_width, ir_left_height, rs2_format::RS2_FORMAT_Y8, ir_left_fps );
       config.enable_stream( rs2_stream::RS2_STREAM_INFRARED, IR_RIGHT, ir_right_width, ir_right_height, rs2_format::RS2_FORMAT_Y8, ir_right_fps );
       // Add streams of gyro and accelerometer to configuration
-      config.enable_stream( rs2_stream::RS2_STREAM_ACCEL, rs2_format::RS2_FORMAT_MOTION_XYZ32F, 250 );
-      config.enable_stream( rs2_stream::RS2_STREAM_GYRO,  rs2_format::RS2_FORMAT_MOTION_XYZ32F, 400 );
+      config.enable_stream( rs2_stream::RS2_STREAM_ACCEL, rs2_format::RS2_FORMAT_MOTION_XYZ32F, acc_fps );
+      config.enable_stream( rs2_stream::RS2_STREAM_GYRO,  rs2_format::RS2_FORMAT_MOTION_XYZ32F, gyro_fps );
       break;
     default:
       std::cerr << "Invalid modality selected" << std::endl;

@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <fstream>
 #include <chrono>
+#include <queue>
+#include <thread>
 #include <unistd.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/opencv.hpp>
@@ -26,7 +28,7 @@ int main(int argc, char **argv)
     cout << endl << "-------" << endl;
     cout << "Start processing video stream ..." << endl;
 
-    realsense.getMotionFrequency();
+    realsense.getAllBuffers();
     getchar();
 
     // Main loop
