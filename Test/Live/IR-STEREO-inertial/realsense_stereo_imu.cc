@@ -97,7 +97,7 @@ int main(int argc, char **argv)
         vImuMeas.clear();
         for (size_t i = 0; i < acc_m.size(); i++)
         {
-          vImuMeas.push_back(ORB_SLAM3::IMU::Point(acc_m[i][1],acc_m[i][2],acc_m[i][3],gyro_m[i][1],gyro_m[i][2],gyro_m[i][3],acc_m[i][0]));
+          vImuMeas.push_back(ORB_SLAM3::IMU::Point(acc_m[i][1],acc_m[i][2],acc_m[i][3],gyro_m[i][1],gyro_m[i][2],gyro_m[i][3],gyro_m[i][0]));
         }
 
         // Pass the IR Left and Depth images to the SLAM system
