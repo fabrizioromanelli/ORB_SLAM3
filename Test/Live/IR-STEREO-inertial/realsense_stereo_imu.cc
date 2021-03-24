@@ -98,9 +98,12 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < acc_m.size(); i++)
         {
           vImuMeas.push_back(ORB_SLAM3::IMU::Point(acc_m[i][1],acc_m[i][2],acc_m[i][3],gyro_m[i][1],gyro_m[i][2],gyro_m[i][3],gyro_m[i][0]));
+          // vImuMeas.push_back(ORB_SLAM3::IMU::Point(-acc_m[i][2],acc_m[i][1],acc_m[i][3],-gyro_m[i][2],gyro_m[i][1],gyro_m[i][3],gyro_m[i][0]));
+          // std::cout << gyro_m[i][0] << "," << gyro_m[i][1] << "," << gyro_m[i][2] << "," << gyro_m[i][3] << "," << acc_m[i][1] << "," << acc_m[i][2] << "," << acc_m[i][3] << std::endl;
+          // vImuMeas.push_back(ORB_SLAM3::IMU::Point(0.0,-9.8,0.0,0.0,0.0,0.0,gyro_m[i][0]));
         }
 
-        // Pass the IR Left and Depth images to the SLAM system
+        // Pass the IR Left and IR Right images to the SLAM system with IMU measurements
         cv::Mat cameraPose = SLAM.TrackStereo(irLeftMatrix, irRightMatrix, vFrameTs, vImuMeas);
 
         if (printTraj)

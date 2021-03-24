@@ -74,15 +74,20 @@ Tbc: !!opencv-matrix
   #        0.0, 0.0, 0.0, 1.0]
 
 # IMU noise
-IMU.NoiseGyro: 0.0018685
-IMU.NoiseAcc: 0.001865
-IMU.GyroWalk: 4.0e-6
-IMU.AccWalk: 0.0002
-IMU.Frequency: 250 # For D435i the frequency for accelerometer is 63/250Hz, for the gyroscope is 200/400Hz
-# IMU.NoiseGyro: 0.01
-# IMU.NoiseAcc: 0.1
-# IMU.GyroWalk: 2.0e-5
+IMU.NoiseGyro: 0.000244346 # 1.19e-04
+IMU.NoiseAcc: 0.001470998 # 2.08e04
+IMU.GyroWalk: 2.0e-07
+IMU.AccWalk: 5.35e-06
+IMU.Frequency: 200
+# IMU.NoiseGyro: 0.0018685
+# IMU.NoiseAcc: 0.001865
+# IMU.GyroWalk: 4.0e-6
 # IMU.AccWalk: 0.0002
+# IMU.Frequency: 250 # For D435i the frequency for accelerometer is 63/250Hz, for the gyroscope is 200/400Hz
+# IMU.NoiseGyro: 0.0
+# IMU.NoiseAcc: 0.0
+# IMU.GyroWalk: 1.0e-10
+# IMU.AccWalk: 1.0e-10
 # IMU.Frequency: 250 # For D435i the frequency for accelerometer is 63/250Hz, for the gyroscope is 200/400Hz
 
 # Close/Far threshold. Baseline times
