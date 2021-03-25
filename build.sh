@@ -67,7 +67,7 @@ cd ..
 # fi
 # cd ..
 
-echo "Configuring and building ORB_SLAM2 ..."
+echo "Configuring and building ORB_SLAM3 ..."
 
 mkdir -p build
 cd build
@@ -78,6 +78,9 @@ else
   exit 1
 fi
 make $1
+
+sudo make install
+sudo ldconfig
 
 cd ..
 
