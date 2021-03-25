@@ -139,10 +139,35 @@ target_link_libraries(realsense_sync ${PROJECT_NAME})
 install (TARGETS ${PROJECT_NAME}
     LIBRARY DESTINATION "/usr/local/lib")
 
+install(DIRECTORY "Thirdparty/DBoW2/lib/"
+    DESTINATION "/usr/local/lib")
+
+install(DIRECTORY "Thirdparty/g2o/lib/"
+    DESTINATION "/usr/local/lib")
+
+install(DIRECTORY "Thirdparty/DBoW2/DBoW2/"
+    DESTINATION "/usr/local/include/Thirdparty/DBoW2/DBoW2"
+    FILES_MATCHING
+    PATTERN "*.h")
+
+install(DIRECTORY "Thirdparty/DBoW2/DUtils/"
+    DESTINATION "/usr/local/include/Thirdparty/DBoW2/DUtils")
+
+install(DIRECTORY "Thirdparty/g2o/g2o/"
+    DESTINATION "/usr/local/include/Thirdparty/g2o/g2o")
+
+install(DIRECTORY "Thirdparty/g2o/"
+    DESTINATION "/usr/local/include/Thirdparty/g2o"
+    FILES_MATCHING
+    PATTERN "*.h")
+
 install(DIRECTORY "include/"
         DESTINATION "/usr/local/include/${PROJECT_NAME}"
         FILES_MATCHING
         PATTERN "*.h")
+
+install(DIRECTORY "include/CameraModels/"
+        DESTINATION "/usr/local/include/${PROJECT_NAME}")
 
 install(DIRECTORY "Config/"
         DESTINATION "/usr/local/share/${PROJECT_NAME}/Config")
