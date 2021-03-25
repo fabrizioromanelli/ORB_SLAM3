@@ -87,34 +87,7 @@ src/CameraModels/Pinhole.cpp
 src/CameraModels/KannalaBrandt8.cpp
 src/OptimizableTypes.cpp
 src/MLPnPsolver.cpp
-include/System.h
-include/Tracking.h
-include/LocalMapping.h
-include/LoopClosing.h
-include/ORBextractor.h
-include/ORBmatcher.h
-include/FrameDrawer.h
-include/Converter.h
-include/MapPoint.h
-include/KeyFrame.h
-include/Atlas.h
-include/Map.h
-include/MapDrawer.h
-include/Optimizer.h
-include/PnPsolver.h
-include/Frame.h
-include/KeyFrameDatabase.h
-include/Sim3Solver.h
-include/Initializer.h
-include/Viewer.h
-include/ImuTypes.h
-include/G2oTypes.h
-include/CameraModels/GeometricCamera.h
-include/CameraModels/Pinhole.h
-include/CameraModels/KannalaBrandt8.h
-include/OptimizableTypes.h
-include/MLPnPsolver.h
-include/TwoViewReconstruction.h
+
 src/TwoViewReconstruction.cc)
 
 add_subdirectory(Thirdparty/g2o)
@@ -161,6 +134,23 @@ target_link_libraries(realsense_stereo_imu ${PROJECT_NAME})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Test/RealSense)
 add_executable(realsense_sync Test/RealSense/realsense_sync.cc)
 target_link_libraries(realsense_sync ${PROJECT_NAME})
+
+# Install library and headers
+install (TARGETS ${PROJECT_NAME}
+    LIBRARY DESTINATION "/usr/local/lib")
+
+install(DIRECTORY "include/"
+        DESTINATION "/usr/local/include/${PROJECT_NAME}"
+        FILES_MATCHING
+        PATTERN "*.h")
+
+install(DIRECTORY "Config/"
+        DESTINATION "/usr/local/share/${PROJECT_NAME}/Config")
+
+install(DIRECTORY "Vocabulary/"
+        DESTINATION "/usr/local/share/${PROJECT_NAME}/Vocabulary"
+        FILES_MATCHING
+        PATTERN "*.txt")
 
 # Build examples
 
