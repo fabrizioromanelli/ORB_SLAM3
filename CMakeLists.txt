@@ -115,6 +115,10 @@ target_link_libraries(${REALSENSE}
 
 
 # Build Tests for Live cameras
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Test/Live/RGBD)
+add_executable(realsense_rgbd Test/Live/RGBD/realsense_rgbd.cc)
+target_link_libraries(realsense_rgbd ${PROJECT_NAME})
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Test/Live/IRD)
 add_executable(realsense_live Test/Live/IRD/realsense.cc)
 target_link_libraries(realsense_live ${PROJECT_NAME})

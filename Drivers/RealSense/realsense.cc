@@ -485,15 +485,24 @@ inline void RealSense::initializeSensor()
   motion_sensor.set_option(RS2_OPTION_ENABLE_MOTION_CORRECTION, 1);
 
   // Refer to: https://github.com/raulmur/ORB_SLAM2/issues/259
-  if ((sensorModality == IRD) || (sensorModality == IMU_IRD))
+  if ((sensorModality == IRD) || (sensorModality == IMU_IRD || (sensorModality == RGBD)))
   {
     auto depth_sensor = realSense_device.first<rs2::depth_sensor>();
     auto depth_stream = pipeline_profile.get_stream(RS2_STREAM_DEPTH);
-    auto ir_stream    = pipeline_profile.get_stream(RS2_STREAM_INFRARED, 2);
-
+    rs2_intrinsics intrinsics;
+    rs2_extrinsics extrinsics;
     const float scale = depth_sensor.get_depth_scale();
-    rs2_intrinsics intrinsics = pipeline_profile.get_stream(RS2_STREAM_INFRARED).as<rs2::video_stream_profile>().get_intrinsics();
-    rs2_extrinsics extrinsics = depth_stream.get_extrinsics_to(ir_stream);
+
+    if ((sensorModality == IRD) || (sensorModality == IMU_IRD))
+    {
+      auto ir_stream    = pipeline_profile.get_stream(RS2_STREAM_INFRARED, 2);
+      intrinsics = pipeline_profile.get_stream(RS2_STREAM_INFRARED).as<rs2::video_stream_profile>().get_intrinsics();
+      extrinsics = depth_stream.get_extrinsics_to(ir_stream);
+    } else if (sensorModality == RGBD) {
+      auto rgb_stream    = pipeline_profile.get_stream(RS2_STREAM_COLOR);
+      intrinsics = pipeline_profile.get_stream(RS2_STREAM_COLOR).as<rs2::video_stream_profile>().get_intrinsics();
+      extrinsics = depth_stream.get_extrinsics_to(rgb_stream);
+    }
 
     std::stringstream ss;
     ss << "    " << std::left << std::setw(31) << "Width"      << ": " << intrinsics.width << std::endl <<
@@ -514,7 +523,9 @@ inline void RealSense::initializeSensor()
 
     std::cout << ss.str() << std::endl;
     pipeline.stop();
-    config.disable_stream(RS2_STREAM_INFRARED, 2);
+    if ((sensorModality == IRD) || (sensorModality == IMU_IRD))
+      config.disable_stream(RS2_STREAM_INFRARED, 2);
+
     pipeline_profile = pipeline.start(config);
     realSense_device = pipeline_profile.get_device();
   }
