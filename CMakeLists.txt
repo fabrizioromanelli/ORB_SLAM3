@@ -135,6 +135,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Test/Live/IR-STEREO-ine
 add_executable(realsense_stereo_imu Test/Live/IR-STEREO-inertial/realsense_stereo_imu.cc)
 target_link_libraries(realsense_stereo_imu ${PROJECT_NAME})
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Test/Live/FE-STEREO)
+add_executable(realsense_fe_stereo Test/Live/FE-STEREO/realsense_fe_stereo.cc)
+target_link_libraries(realsense_fe_stereo ${PROJECT_NAME})
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Test/RealSense)
 add_executable(realsense_sync Test/RealSense/realsense_sync.cc)
 target_link_libraries(realsense_sync ${PROJECT_NAME})

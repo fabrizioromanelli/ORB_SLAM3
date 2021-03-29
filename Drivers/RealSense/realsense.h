@@ -17,7 +17,7 @@ public:
   // IMU_IRD  - Uses Infrared Left camera and Depth camera (aligned, synchronized) and IMU
   // IR_STEREO - Uses Infrared left and right camera
   // IMU_IR_STEREO - Uses Infrared left and right camera and IMU
-  enum sModality { RGBD, IRD, IRL, IRR, IMU_IRD, IR_STEREO, IMU_IR_STEREO };
+  enum sModality { RGBD, IRD, IRL, IRR, IMU_IRD, IR_STEREO, IMU_IR_STEREO, FE_STEREO };
 
 private:
   // Sensor modality
@@ -38,6 +38,22 @@ private:
   uint32_t color_width = 640;
   uint32_t color_height = 480;
   uint32_t color_fps;
+
+  // Fisheye Left Buffer
+  rs2::frame fe_left_frame;
+  cv::Mat fe_left_mat;
+  uint32_t fe_left_width = 848;
+  uint32_t fe_left_height = 800;
+  uint32_t fe_left_fps;
+  double fe_left_ts;
+
+  // Fisheye Right Buffer
+  rs2::frame fe_right_frame;
+  cv::Mat fe_right_mat;
+  uint32_t fe_right_width = 848;
+  uint32_t fe_right_height = 800;
+  uint32_t fe_right_fps;
+  double fe_right_ts;
 
   // Infrared Left Buffer
   rs2::frame ir_left_frame;
@@ -89,6 +105,7 @@ private:
   rs2_time_t MIN_DELTA_TIMEFRAMES_THRESHOLD = 20;
 
   enum irCamera { IR_LEFT = 1, IR_RIGHT = 2};
+  enum feCamera { FE_LEFT = 1, FE_RIGHT = 2};
 
   // Mutex for frame grabbing
   std::mutex accMtx, gyroMtx, frameMtx;
@@ -122,6 +139,7 @@ public:
   rs2_time_t getRGBTimestamp();
   rs2_time_t getDepthTimestamp();
   rs2_time_t getIRLeftTimestamp();
+  rs2_time_t getFETimestamp();
   rs2_time_t getTemporalFrameDisplacement();
   rs2_time_t getAverageTimestamp();
   rs2_time_t getGyroTimestamp();
@@ -134,12 +152,16 @@ public:
   cv::Mat getDepthMatrix();
   cv::Mat getIRLeftMatrix();
   cv::Mat getIRRightMatrix();
+  cv::Mat getFELeftMatrix();
+  cv::Mat getFERightMatrix();
 
   // Get raw frames
   rs2::frame getColorFrame();
   rs2::frame getDepthFrame();
   rs2::frame getIRLeftFrame();
   rs2::frame getIRRightFrame();
+  rs2::frame getFELeftFrame();
+  rs2::frame getFERightFrame();
 
   // Get IMU frames
   cv::Point3f getAccFrames();
@@ -179,6 +201,9 @@ private:
   // Updates for IMU_IR_STEREO frames
   void updateIMU_IR_STEREO();
 
+  // Updates for FE_STEREO frames
+  void updateFE_STEREO();
+
   // Updates for motion frame
   void updateGyro();
   void updateAcc();
@@ -197,6 +222,12 @@ private:
 
   // Update IR (Right)
   inline void updateInfraredIRRight();
+
+  // Update FE (Left)
+  inline void updateFELeft();
+
+  // Update FE (Right)
+  inline void updateFERight();
 
   // Draw Data
   void draw();

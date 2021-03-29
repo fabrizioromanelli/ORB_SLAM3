@@ -2,14 +2,14 @@
 
 // Constructor
 RealSense::RealSense(const sModality modality):
-sensorModality(modality), color_fps(30), ir_left_fps(30), ir_right_fps(30), depth_fps(30), acc_fps(250), gyro_fps(400)
+sensorModality(modality), color_fps(30), ir_left_fps(30), ir_right_fps(30), fe_left_fps(30), fe_right_fps(30), depth_fps(30), acc_fps(250), gyro_fps(400)
 {
   initialize(MIN_DELTA_TIMEFRAMES_THRESHOLD);
 }
 
 // Constructor with maximum delta timeframes as an input
 RealSense::RealSense(const sModality modality, double maximumDeltaTimeframes):
-sensorModality(modality), color_fps(30), ir_left_fps(30), ir_right_fps(30), depth_fps(30), acc_fps(250), gyro_fps(400)
+sensorModality(modality), color_fps(30), ir_left_fps(30), ir_right_fps(30), fe_left_fps(30), fe_right_fps(30), depth_fps(30), acc_fps(250), gyro_fps(400)
 {
   if (maximumDeltaTimeframes > MIN_DELTA_TIMEFRAMES_THRESHOLD)
     initialize(maximumDeltaTimeframes);
@@ -57,6 +57,9 @@ void RealSense::run()
       break;
     case IMU_IR_STEREO:
       updateIMU_IR_STEREO();
+      break;
+    case FE_STEREO:
+      updateFE_STEREO();
       break;
     default:
       break;
@@ -277,6 +280,21 @@ rs2_time_t RealSense::getIRLeftTimestamp()
   }
 }
 
+rs2_time_t RealSense::getFETimestamp()
+{
+  if (sensorModality == FE_STEREO) {
+    // Get each frame
+    rs2::frame cFrame  = frameset.get_fisheye_frame(FE_LEFT);
+    rs2_frame * frameP = cFrame.get();
+
+    // Get frame timestamp
+    return(rs2_get_frame_timestamp(frameP, &e)/1000.0);
+  } else {
+    return(-1);
+  }
+}
+
+
 rs2_time_t RealSense::getGyroTimestamp()
 {
   gyro_frame = frameset.first_or_default(RS2_STREAM_GYRO, RS2_FORMAT_MOTION_XYZ32F);
@@ -382,6 +400,20 @@ cv::Mat RealSense::getIRRightMatrix()
   return(ir_right);
 }
 
+// Get FE left matrix
+cv::Mat RealSense::getFELeftMatrix()
+{
+  cv::Mat fe_left(cv::Size(fe_left_width, fe_left_height), CV_8UC1, (void*)fe_left_frame.get_data(), cv::Mat::AUTO_STEP);
+  return(fe_left);
+}
+
+// Get FE right matrix
+cv::Mat RealSense::getFERightMatrix()
+{
+  cv::Mat fe_right(cv::Size(fe_right_width, fe_right_height), CV_8UC1, (void*)fe_right_frame.get_data(), cv::Mat::AUTO_STEP);
+  return(fe_right);
+}
+
 // Get color frame
 rs2::frame RealSense::getColorFrame()
 {
@@ -404,6 +436,18 @@ rs2::frame RealSense::getIRLeftFrame()
 rs2::frame RealSense::getIRRightFrame()
 {
   return(ir_right_frame);
+}
+
+// Get FE left frame
+rs2::frame RealSense::getFELeftFrame()
+{
+  return(fe_left_frame);
+}
+
+// Get FE right frame
+rs2::frame RealSense::getFERightFrame()
+{
+  return(fe_right_frame);
 }
 
 cv::Point3f RealSense::getGyroFrames()
@@ -473,6 +517,10 @@ inline void RealSense::initializeSensor()
       config.enable_stream( rs2_stream::RS2_STREAM_ACCEL, rs2_format::RS2_FORMAT_MOTION_XYZ32F, acc_fps );
       config.enable_stream( rs2_stream::RS2_STREAM_GYRO,  rs2_format::RS2_FORMAT_MOTION_XYZ32F, gyro_fps );
       break;
+    case FE_STEREO:
+      config.enable_stream( rs2_stream::RS2_STREAM_FISHEYE, FE_LEFT, fe_left_width, fe_left_height, rs2_format::RS2_FORMAT_Y8, fe_left_fps );
+      config.enable_stream( rs2_stream::RS2_STREAM_FISHEYE, FE_RIGHT, fe_right_width, fe_right_height, rs2_format::RS2_FORMAT_Y8, fe_right_fps );
+      break;
     default:
       std::cerr << "Invalid modality selected" << std::endl;
       break;
@@ -481,8 +529,58 @@ inline void RealSense::initializeSensor()
   pipeline_profile = pipeline.start(config);
   realSense_device = pipeline_profile.get_device();
 
-  auto motion_sensor = realSense_device.first<rs2::motion_sensor>();
-  motion_sensor.set_option(RS2_OPTION_ENABLE_MOTION_CORRECTION, 1);
+  std::string cameraName = realSense_device.get_info(rs2_camera_info::RS2_CAMERA_INFO_NAME);
+
+  if (cameraName.find("T265") == -1)
+  {
+    auto motion_sensor = realSense_device.first<rs2::motion_sensor>();
+    motion_sensor.set_option(RS2_OPTION_ENABLE_MOTION_CORRECTION, 1);
+  }
+  else
+  {
+    rs2_intrinsics intrinsics1, intrinsics2;
+    rs2_extrinsics extrinsics1, extrinsics2;
+
+    auto fe_stream_l = pipeline_profile.get_stream(RS2_STREAM_FISHEYE, FE_LEFT);
+    auto fe_stream_r = pipeline_profile.get_stream(RS2_STREAM_FISHEYE, FE_RIGHT);
+    intrinsics1 = pipeline_profile.get_stream(RS2_STREAM_FISHEYE, FE_LEFT).as<rs2::video_stream_profile>().get_intrinsics();
+    extrinsics1 = fe_stream_l.get_extrinsics_to(fe_stream_r);
+    intrinsics2 = pipeline_profile.get_stream(RS2_STREAM_FISHEYE, FE_RIGHT).as<rs2::video_stream_profile>().get_intrinsics();
+    extrinsics2 = fe_stream_r.get_extrinsics_to(fe_stream_l);
+
+    std::stringstream ss1, ss2;
+    ss1 << "    " << std::left << std::setw(31) << "Width"      << ": " << intrinsics1.width << std::endl <<
+           "    " << std::left << std::setw(31) << "Height"     << ": " << intrinsics1.height << std::endl <<
+           "    " << std::left << std::setw(31) << "Distortion" << ": " << rs2_distortion_to_string(intrinsics1.model) << std::endl <<
+           "    " << std::left << std::setw(31) << "Baseline"   << ": " << std::setprecision(15) << extrinsics1.translation[0] << std::endl <<
+           "    " << std::left << std::setw(31) << "Camera1.fx"  << ": " << std::setprecision(15) << intrinsics1.fx << std::endl <<
+           "    " << std::left << std::setw(31) << "Camera1.fy"  << ": " << std::setprecision(15) << intrinsics1.fy << std::endl <<
+           "    " << std::left << std::setw(31) << "Camera1.cx"  << ": " << std::setprecision(15) << intrinsics1.ppx << std::endl <<
+           "    " << std::left << std::setw(31) << "Camera1.cy"  << ": " << std::setprecision(15) << intrinsics1.ppy << std::endl <<
+           "    " << std::left << std::setw(31) << "Camera1.k1"  << ": " << std::setprecision(15) << intrinsics1.coeffs[0] << std::endl <<
+           "    " << std::left << std::setw(31) << "Camera1.k2"  << ": " << std::setprecision(15) << intrinsics1.coeffs[1] << std::endl <<
+           "    " << std::left << std::setw(31) << "Camera1.k3"  << ": " << std::setprecision(15) << intrinsics1.coeffs[2] << std::endl <<
+           "    " << std::left << std::setw(31) << "Camera1.k4"  << ": " << std::setprecision(15) << intrinsics1.coeffs[3] << std::endl <<
+           "    " << std::left << std::setw(31) << "Camera1.bf"  << ": " << fabs(extrinsics1.translation[0]*intrinsics1.fx) << std::endl;
+    
+    std::cout << ss1.str() << std::endl;
+
+    ss2 << "    " << std::left << std::setw(31) << "Width"      << ": " << intrinsics2.width << std::endl <<
+           "    " << std::left << std::setw(31) << "Height"     << ": " << intrinsics2.height << std::endl <<
+           "    " << std::left << std::setw(31) << "Distortion" << ": " << rs2_distortion_to_string(intrinsics2.model) << std::endl <<
+           "    " << std::left << std::setw(31) << "Baseline"   << ": " << std::setprecision(15) << extrinsics2.translation[0] << std::endl <<
+           "    " << std::left << std::setw(31) << "Camera2.fx"  << ": " << std::setprecision(15) << intrinsics2.fx << std::endl <<
+           "    " << std::left << std::setw(31) << "Camera2.fy"  << ": " << std::setprecision(15) << intrinsics2.fy << std::endl <<
+           "    " << std::left << std::setw(31) << "Camera2.cx"  << ": " << std::setprecision(15) << intrinsics2.ppx << std::endl <<
+           "    " << std::left << std::setw(31) << "Camera2.cy"  << ": " << std::setprecision(15) << intrinsics2.ppy << std::endl <<
+           "    " << std::left << std::setw(31) << "Camera2.k1"  << ": " << std::setprecision(15) << intrinsics2.coeffs[0] << std::endl <<
+           "    " << std::left << std::setw(31) << "Camera2.k2"  << ": " << std::setprecision(15) << intrinsics2.coeffs[1] << std::endl <<
+           "    " << std::left << std::setw(31) << "Camera2.k3"  << ": " << std::setprecision(15) << intrinsics2.coeffs[2] << std::endl <<
+           "    " << std::left << std::setw(31) << "Camera2.k4"  << ": " << std::setprecision(15) << intrinsics2.coeffs[3] << std::endl <<
+           "    " << std::left << std::setw(31) << "Camera2.bf"  << ": " << fabs(extrinsics2.translation[0]*intrinsics2.fx) << std::endl;
+    
+    std::cout << ss2.str() << std::endl;
+  }
 
   // Refer to: https://github.com/raulmur/ORB_SLAM2/issues/259
   if ((sensorModality == IRD) || (sensorModality == IMU_IRD || (sensorModality == RGBD)))
@@ -530,8 +628,11 @@ inline void RealSense::initializeSensor()
     realSense_device = pipeline_profile.get_device();
   }
 
-  // The laser projector is disabled by default
-  disableLaser();
+  if (cameraName.find("T265") == -1)
+  {
+    // The laser projector is disabled by default
+    disableLaser();
+  }
 
   // Camera warmup - dropping several first frames to let auto-exposure stabilize
   for (uint32_t i = 0; i < warm_up_frames; i++)
@@ -616,6 +717,13 @@ void RealSense::updateIMU_IR_STEREO()
   updateAcc();
 }
 
+void RealSense::updateFE_STEREO()
+{
+  updateFrame();
+  updateFELeft();
+  updateFERight();
+}
+
 void RealSense::updateIMU()
 {
   updateFrame();
@@ -682,6 +790,26 @@ inline void RealSense::updateInfraredIRRight()
   // Retrieve Frame Information
   ir_right_width  = ir_right_frame.as<rs2::video_frame>().get_width();
   ir_right_height = ir_right_frame.as<rs2::video_frame>().get_height();
+}
+
+// Update Fisheye (Left)
+inline void RealSense::updateFELeft()
+{
+  fe_left_frame  = frameset.get_fisheye_frame(FE_LEFT);
+
+  // Retrieve Frame Information
+  fe_left_width  = fe_left_frame.as<rs2::video_frame>().get_width();
+  fe_left_height = fe_left_frame.as<rs2::video_frame>().get_height();
+}
+
+// Update Fisheye (Right)
+inline void RealSense::updateFERight()
+{
+  fe_right_frame  = frameset.get_fisheye_frame(FE_RIGHT);
+
+  // Retrieve Frame Information
+  fe_right_width  = fe_right_frame.as<rs2::video_frame>().get_width();
+  fe_right_height = fe_right_frame.as<rs2::video_frame>().get_height();
 }
 
 // Update Gyro
