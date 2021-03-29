@@ -173,9 +173,21 @@ void Viewer::Run()
     pangolin::OpenGlMatrix Twwp; // Oriented with g in the z axis, but y and x from camera
     Twwp.SetIdentity();
 
-    pangolin::CreateWindowAndBind("ORB-SLAM3: Current Frame",640,500);
-    pangolin::View& d_stream = pangolin::CreateDisplay().SetBounds(0.0, 1.0, 1.0, 0.0, -640.0f/500.0f);
-    pangolin::GlTexture imageTexture(640,500,GL_RGB,false,0,GL_RGB,GL_UNSIGNED_BYTE);
+    int curFrameWidth, curFrameHeight;
+    if (both)
+    {
+      curFrameWidth  = mImageWidth*2;
+      curFrameHeight = mImageHeight+20;
+    }
+    else
+    {
+      curFrameWidth  = mImageWidth;
+      curFrameHeight = mImageHeight+20;
+    }
+
+    pangolin::CreateWindowAndBind("ORB-SLAM3: Current Frame",curFrameWidth,curFrameHeight);
+    pangolin::View& d_stream = pangolin::CreateDisplay().SetBounds(0.0, 1.0, 1.0, 0.0, (double)-curFrameWidth/curFrameHeight);
+    pangolin::GlTexture imageTexture(curFrameWidth,curFrameHeight,GL_RGB,false,0,GL_RGB,GL_UNSIGNED_BYTE);
 
     bool bFollow = true;
     bool bLocalizationMode = false;

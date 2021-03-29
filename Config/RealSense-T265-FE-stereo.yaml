@@ -43,14 +43,12 @@ Tlr: !!opencv-matrix
 Camera.width: 848
 Camera.height: 800
 
-# ???
 # Lapping area between images
-Camera.lappingBegin: 0
-Camera.lappingEnd: 799
+Camera.lappingBegin: 50
+Camera.lappingEnd: 848
 
-# ???
 Camera2.lappingBegin: 0
-Camera2.lappingEnd: 799
+Camera2.lappingEnd: 798
 
 # Camera frames per second
 Camera.fps: 30.0
