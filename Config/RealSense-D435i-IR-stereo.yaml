@@ -61,51 +61,51 @@ ThDepth: 800.0
 # DepthMapFactor = 1000, which is the conversion from millimeters to meters (Realsense provides depth in millimeters)
 DepthMapFactor: 999.999938964844
 
-LEFT.height: 480
-LEFT.width: 640
-LEFT.D: !!opencv-matrix
-  rows: 1
-  cols: 5
-  dt: d
-  data: [-0.015627, 0.000299, 0.000140, 0.000878, 0.000000]
-LEFT.K: !!opencv-matrix
-  rows: 3
-  cols: 3
-  dt: d
-  data: [382.80267333984375, 0.0, 316.8811340332031, 0.0, 382.80267333984375, 237.82000732421875, 0.0, 0.0, 1.0]
-LEFT.R: !!opencv-matrix
-  rows: 3
-  cols: 3
-  dt: d
-  data: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
-LEFT.P: !!opencv-matrix
-  rows: 3
-  cols: 4
-  dt: d
-  data: [382.80267333984375, 0.0, 316.8811340332031, 0.0, 0.0, 382.80267333984375, 237.82000732421875, 0.0, 0.0, 0.0, 1.0, 0.0]
+# LEFT.height: 480
+# LEFT.width: 640
+# LEFT.D: !!opencv-matrix
+#   rows: 1
+#   cols: 5
+#   dt: d
+#   data: [-0.015627, 0.000299, 0.000140, 0.000878, 0.000000]
+# LEFT.K: !!opencv-matrix
+#   rows: 3
+#   cols: 3
+#   dt: d
+#   data: [382.80267333984375, 0.0, 316.8811340332031, 0.0, 382.80267333984375, 237.82000732421875, 0.0, 0.0, 1.0]
+# LEFT.R: !!opencv-matrix
+#   rows: 3
+#   cols: 3
+#   dt: d
+#   data: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+# LEFT.P: !!opencv-matrix
+#   rows: 3
+#   cols: 4
+#   dt: d
+#   data: [382.80267333984375, 0.0, 316.8811340332031, 0.0, 0.0, 382.80267333984375, 237.82000732421875, 0.0, 0.0, 0.0, 1.0, 0.0]
 
-RIGHT.height: 480
-RIGHT.width: 640
-RIGHT.D: !!opencv-matrix
-  rows: 1
-  cols: 5
-  dt: d
-  data: [0.0, 0.0, 0.0, 0.0, 0.0]
-RIGHT.K: !!opencv-matrix
-  rows: 3
-  cols: 3
-  dt: d
-  data: [382.80267333984375, 0.0, 316.8811340332031, 0.0, 382.80267333984375, 237.82000732421875, 0.0, 0.0, 1.0]
-RIGHT.R: !!opencv-matrix
-  rows: 3
-  cols: 3
-  dt: d
-  data: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
-RIGHT.P: !!opencv-matrix
-  rows: 3
-  cols: 4
-  dt: d
-  data: [382.80267333984375, 0.0, 316.8811340332031, 0.0, 0.0, 382.80267333984375, 237.82000732421875, 0.0, 0.0, 0.0, 1.0, 0.0]
+# RIGHT.height: 480
+# RIGHT.width: 640
+# RIGHT.D: !!opencv-matrix
+#   rows: 1
+#   cols: 5
+#   dt: d
+#   data: [0.0, 0.0, 0.0, 0.0, 0.0]
+# RIGHT.K: !!opencv-matrix
+#   rows: 3
+#   cols: 3
+#   dt: d
+#   data: [382.80267333984375, 0.0, 316.8811340332031, 0.0, 382.80267333984375, 237.82000732421875, 0.0, 0.0, 1.0]
+# RIGHT.R: !!opencv-matrix
+#   rows: 3
+#   cols: 3
+#   dt: d
+#   data: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+# RIGHT.P: !!opencv-matrix
+#   rows: 3
+#   cols: 4
+#   dt: d
+#   data: [382.80267333984375, 0.0, 316.8811340332031, 0.0, 0.0, 382.80267333984375, 237.82000732421875, 0.0, 0.0, 0.0, 1.0, 0.0]
 
 # Modeling Realsense D435 Sensor Noise for Improved 3D Reconstruction and Tracking.
 sensor_processor/type: structured_light
